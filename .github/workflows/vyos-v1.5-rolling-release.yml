@@ -15,7 +15,7 @@ env:
   ARCHITECTURE: amd64
   BUILD_BY: systems@tmtco.asia
   BUILD_TYPE: release
-  VERSION: 1.5-rolling
+  VERSION: 1.5
   DEBIAN_MIRROR: http://ftp.us.debian.org/debian/
 
 jobs:
