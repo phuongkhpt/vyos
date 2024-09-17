@@ -119,6 +119,7 @@ jobs:
           echo "${{ secrets.minisign_private_key }}" > /tmp/minisign.key
           echo ${{ secrets.minisign_password }} | $GITHUB_WORKSPACE/bin/minisign -s /tmp/minisign.key -Sm vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso
           echo "${{ secrets.minisign_public_key }}" > /tmp/minisign.pub
+          chmod +x $GITHUB_WORKSPACE/bin/minisign
           $GITHUB_WORKSPACE/bin/minisign -Vm vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso -x vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso.minisig -p /tmp/minisign.pub
           rm /tmp/minisign.key /tmp/minisign.pub
 
