@@ -7,7 +7,10 @@ on:
   pull_request:
     branches:
       - main
-
+env:
+  BUILD_BY: autobuild@vyos.net
+  DEBIAN_MIRROR: http://deb.debian.org/debian/
+  VYOS_MIRROR: https://rolling-packages.vyos.net/current/
 jobs:
   build-vyos:
     runs-on: ubuntu-24.04
@@ -40,6 +43,24 @@ jobs:
         sudo apt-get install -y python3-pip
         pip3 install tomli jinja2 gitpython
 
+
+    - uses: actions/checkout@v4
+    - name: "Initialization: set env variables"
+      id: set_env_variables
+      run: |
+          set -x
+          if [ -n "${{ github.event.inputs.BUILD_BY }}" ]; then
+            echo "BUILD_BY=${{ github.event.inputs.BUILD_BY }}" >> $GITHUB_ENV
+          fi
+          if [ -z "${{ github.event.inputs.build_version }}" ]; then
+            echo "build_version=1.5-rolling-$(date -u +%Y%m%d%H%M)" >> $GITHUB_OUTPUT
+          else
+            echo "build_version=${{ github.event.inputs.build_version }}" >> $GITHUB_OUTPUT
+          fi
+          echo "TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+          echo "PREVIOUS_SUCCESS_BUILD_TIMESTAMP=$(cat version.json | jq -r '.[0].timestamp')" >> $GITHUB_OUTPUT
+          echo "BUILD_BY=$BUILD_BY" >> $GITHUB_OUTPUT
+          
     - name: Configure Kernel
       run: |
         git clone https://github.com/vyos/vyos-build.git
