@@ -69,7 +69,7 @@ jobs:
         sudo --preserve-env ./build-vyos-image \
           --architecture amd64 \
           --build-by GitHub-Actions \
-          --build-type rolling \
+          --build-type release  \
           --version $(date +%Y%m%d%H%M%S) \
           generic
         mv build/*.iso ./vyos-rolling.iso
