@@ -33,10 +33,12 @@ jobs:
           xorriso \
           live-build \
           debootstrap \
+          pbuilder \
+          devscripts \
           python3-pystache \
           python3-git
         sudo apt-get install -y python3-pip
-        pip3 install tomli jinja2 gitpython pbuilder devscripts
+        pip3 install tomli jinja2 gitpython
 
     - name: Configure Kernel
       run: |
