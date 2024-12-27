@@ -42,6 +42,7 @@ jobs:
           python3-git
         sudo apt-get install -y python3-pip
         pip3 install tomli jinja2 gitpython
+        pip3 install gitpython psutil jinja2 tomli pystache pyyaml requests jsonschema pytest
 
 
     - uses: actions/checkout@v4
@@ -106,7 +107,7 @@ jobs:
         --vyos-mirror $VYOS_MIRROR \
         generic
         # move artifact one level up for minisign
-        mv build/vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso ..
+        mv build/vyos-generic-amd64.iso ..
 
     - name: Sign generic ISO image
       shell: bash
