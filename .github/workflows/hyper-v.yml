@@ -36,6 +36,7 @@ jobs:
 
     - name: Configure Kernel
       run: |
+        git clone https://github.com/vyos/vyos-build.git
         cd vyos-build
         echo 'CONFIG_HYPERV=y' >> data/live-build-config/package-lists/config.kernel
         echo 'CONFIG_HYPERV_VMBUS=y' >> data/live-build-config/package-lists/config.kernel
