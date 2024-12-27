@@ -64,6 +64,15 @@ jobs:
         echo 'CONFIG_X86_HYPERV_TIMER=y' >> data/live-build-config/package-lists/config.kernel
         echo 'CONFIG_HYPERV_TSCPAGE=y' >> data/live-build-config/package-lists/config.kernel
         echo 'CONFIG_HYPERV_IOMMU=y' >> data/live-build-config/package-lists/config.kernel
+    - name: Configure live-build and Update Mirrors
+      run: |
+        cd vyos-build
+        sudo lb clean
+        sudo lb config \
+          --distribution focal \
+          --architectures amd64 \
+          --mirror-bootstrap http://archive.ubuntu.com/ubuntu \
+          --archive-areas "main contrib non-free"
 
     # Build VyOS ISO
     - name: Build VyOS ISO
