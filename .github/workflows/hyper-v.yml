@@ -1,0 +1,62 @@
+name: Build VyOS hyper-v
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-vyos:
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          git \
+          curl \
+          build-essential \
+          python3 \
+          python3-pip \
+          qemu-kvm \
+          libvirt-daemon-system \
+          libvirt-clients \
+          virt-manager \
+          squashfs-tools \
+          xorriso \
+          live-build \
+          debootstrap
+
+    - name: Configure Kernel
+      run: |
+        cd vyos-build
+        echo 'CONFIG_HYPERV=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_VMBUS=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_STORAGE=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_NET=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_BALLOON=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_UTILS=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_KEYBOARD=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_PARAVIRT=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_X86_HYPERV_TIMER=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_TSCPAGE=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_IOMMU=y' >> data/live-build-config/package-lists/config.kernel
+
+    - name: Build VyOS
+      run: |
+        cd vyos-build
+        sudo ./configure
+        sudo make iso
+
+    - name: Upload VyOS ISO
+      uses: actions/upload-artifact@v3
+      with:
+        name: vyos-hyperv-build
+        path: vyos-build/build/*.iso
