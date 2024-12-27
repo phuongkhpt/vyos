@@ -68,7 +68,7 @@ jobs:
     - name: Build generic ISO image
       id: build_generic_iso
       run: |
-        cd vyos-build
+       cd vyos-build
        sudo --preserve-env ./build-vyos-image \
         --architecture amd64 \
         --build-by $BUILD_BY \
