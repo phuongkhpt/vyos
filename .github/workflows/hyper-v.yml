@@ -1,4 +1,4 @@
-name: Build VyOS hyper-v
+name: VyOS Rolling Release Build
 
 on:
   push:
@@ -7,28 +7,23 @@ on:
   pull_request:
     branches:
       - main
-env:
-  BUILD_BY: autobuild@vyos.net
-  DEBIAN_MIRROR: http://deb.debian.org/debian/
-  VYOS_MIRROR: https://rolling-packages.vyos.net/current/
+
 jobs:
-  build-vyos:
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: write
-    container:
-      image: vyos/vyos-build:current
-      options: --sysctl net.ipv6.conf.lo.disable_ipv6=0 --privileged
-    outputs:
-      BUILD_BY: ${{ steps.set_env_variables.outputs.BUILD_BY }}
-      build_version: ${{ steps.set_env_variables.outputs.build_version }}
-      TIMESTAMP: ${{ steps.set_env_variables.outputs.TIMESTAMP }}
-      PREVIOUS_SUCCESS_BUILD_TIMESTAMP: ${{ steps.set_env_variables.outputs.PREVIOUS_SUCCESS_BUILD_TIMESTAMP }}
+  build:
+    runs-on: ubuntu-22.04
 
     steps:
-    - name: Checkout source code
+    # Checkout code
+    - name: Checkout code
       uses: actions/checkout@v3
 
+    # Clone VyOS repository
+    - name: Clone VyOS repository
+      run: |
+        git clone --branch current https://github.com/vyos/vyos-build.git
+        cd vyos-build
+
+    # Install dependencies
     - name: Install dependencies
       run: |
         sudo apt-get update
@@ -50,45 +45,9 @@ jobs:
           devscripts \
           python3-pystache \
           python3-git
-        sudo apt-get install -y python3-pip
-        pip3 install tomli jinja2 gitpython
-        pip3 install gitpython psutil jinja2 tomli pystache pyyaml requests jsonschema pytest mock pytest-mock click tabulate netaddr paramiko scapy cryptography pyroute2
 
-
-    - uses: actions/checkout@v4
-    - name: "Initialization: set env variables"
-      id: set_env_variables
-      run: |
-          set -x
-          if [ -n "${{ github.event.inputs.BUILD_BY }}" ]; then
-            echo "BUILD_BY=${{ github.event.inputs.BUILD_BY }}" >> $GITHUB_ENV
-          fi
-          if [ -z "${{ github.event.inputs.build_version }}" ]; then
-            echo "build_version=1.5-rolling-$(date -u +%Y%m%d%H%M)" >> $GITHUB_OUTPUT
-          else
-            echo "build_version=${{ github.event.inputs.build_version }}" >> $GITHUB_OUTPUT
-          fi
-          echo "TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
-          echo "PREVIOUS_SUCCESS_BUILD_TIMESTAMP=$(cat version.json | jq -r '.[0].timestamp')" >> $GITHUB_OUTPUT
-          echo "BUILD_BY=$BUILD_BY" >> $GITHUB_OUTPUT
-          
-    - name: Configure Kernel
-      run: |
-        git clone https://github.com/vyos/vyos-build.git
-        cd vyos-build
-        echo 'CONFIG_HYPERV=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_VMBUS=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_STORAGE=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_NET=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_BALLOON=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_UTILS=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_KEYBOARD=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_PARAVIRT=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_X86_HYPERV_TIMER=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_TSCPAGE=y' >> data/live-build-config/package-lists/config.kernel
-        echo 'CONFIG_HYPERV_IOMMU=y' >> data/live-build-config/package-lists/config.kernel
-
-    - name: Build VyOS
+    # Configure Kernel for Hyper-V
+    - name: Configure Kernel for Hyper-V
       run: |
         cd vyos-build
         echo 'CONFIG_HYPERV=y' >> data/live-build-config/package-lists/config.kernel
@@ -102,34 +61,22 @@ jobs:
         echo 'CONFIG_X86_HYPERV_TIMER=y' >> data/live-build-config/package-lists/config.kernel
         echo 'CONFIG_HYPERV_TSCPAGE=y' >> data/live-build-config/package-lists/config.kernel
         echo 'CONFIG_HYPERV_IOMMU=y' >> data/live-build-config/package-lists/config.kernel
-        
-    - name: Build generic ISO image
-      id: build_generic_iso
-      run: |
-       cd vyos-build
-       sudo --preserve-env ./build-vyos-image \
-        --architecture amd64 \
-        --build-by $BUILD_BY \
-        --build-type release \
-        --custom-package vyos-1x-smoketest \
-        --debian-mirror $DEBIAN_MIRROR \
-        --version ${{ steps.set_env_variables.outputs.build_version }} \
-        --vyos-mirror $VYOS_MIRROR \
-        generic
-        # move artifact one level up for minisign
-        mv build/vyos-generic-amd64.iso ..
 
-    - name: Sign generic ISO image
-      shell: bash
+    # Build VyOS ISO
+    - name: Build VyOS ISO
       run: |
-        echo "${{ secrets.minisign_private_key }}" > /tmp/minisign.key
-        echo ${{ secrets.minisign_password }} | $GITHUB_WORKSPACE/bin/minisign -s /tmp/minisign.key -Sm vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso
-        echo "${{ secrets.minisign_public_key }}" > /tmp/minisign.pub
-        $GITHUB_WORKSPACE/bin/minisign -Vm vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso -x vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso.minisig -p /tmp/minisign.pub
-        rm /tmp/minisign.key /tmp/minisign.pub
+        cd vyos-build
+        sudo --preserve-env ./build-vyos-image \
+          --architecture amd64 \
+          --build-by GitHub-Actions \
+          --build-type rolling \
+          --version $(date +%Y%m%d%H%M%S) \
+          generic
+        mv build/*.iso ./vyos-rolling.iso
 
+    # Upload VyOS ISO
     - name: Upload VyOS ISO
       uses: actions/upload-artifact@v3
       with:
-        name: vyos-hyperv-build
-        path: vyos-build/build/*.iso
+        name: vyos-rolling-iso
+        path: vyos-rolling.iso
