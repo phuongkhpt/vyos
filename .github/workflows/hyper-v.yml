@@ -53,8 +53,42 @@ jobs:
     - name: Build VyOS
       run: |
         cd vyos-build
-        sudo ./configure
-        sudo make iso
+        echo 'CONFIG_HYPERV=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_VMBUS=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_STORAGE=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_NET=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_BALLOON=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_UTILS=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_KEYBOARD=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_PARAVIRT=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_X86_HYPERV_TIMER=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_TSCPAGE=y' >> data/live-build-config/package-lists/config.kernel
+        echo 'CONFIG_HYPERV_IOMMU=y' >> data/live-build-config/package-lists/config.kernel
+        
+    - name: Build generic ISO image
+      id: build_generic_iso
+      run: |
+        cd vyos-build
+       sudo --preserve-env ./build-vyos-image \
+        --architecture amd64 \
+        --build-by $BUILD_BY \
+        --build-type release \
+        --custom-package vyos-1x-smoketest \
+        --debian-mirror $DEBIAN_MIRROR \
+        --version ${{ steps.set_env_variables.outputs.build_version }} \
+        --vyos-mirror $VYOS_MIRROR \
+        generic
+        # move artifact one level up for minisign
+        mv build/vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso ..
+
+    - name: Sign generic ISO image
+      shell: bash
+      run: |
+        echo "${{ secrets.minisign_private_key }}" > /tmp/minisign.key
+        echo ${{ secrets.minisign_password }} | $GITHUB_WORKSPACE/bin/minisign -s /tmp/minisign.key -Sm vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso
+        echo "${{ secrets.minisign_public_key }}" > /tmp/minisign.pub
+        $GITHUB_WORKSPACE/bin/minisign -Vm vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso -x vyos-${{ steps.set_env_variables.outputs.build_version }}-generic-amd64.iso.minisig -p /tmp/minisign.pub
+        rm /tmp/minisign.key /tmp/minisign.pub
 
     - name: Upload VyOS ISO
       uses: actions/upload-artifact@v3
