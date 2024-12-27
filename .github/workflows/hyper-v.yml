@@ -44,7 +44,10 @@ jobs:
           pbuilder \
           devscripts \
           python3-pystache \
-          python3-git
+          python3-git \
+          python3-pip
+          pip3 install gitpython psutil jinja2 tomli pystache pyyaml requests jsonschema pytest mock pytest-mock click tabulate netaddr paramiko scapy cryptography pyroute2
+
 
     # Configure Kernel for Hyper-V
     - name: Configure Kernel for Hyper-V
