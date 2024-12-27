@@ -32,9 +32,11 @@ jobs:
           squashfs-tools \
           xorriso \
           live-build \
-          debootstrap
+          debootstrap \
+          python3-pystache \
+          python3-git
         sudo apt-get install -y python3-pip
-        pip3 install tomli jinja2 gitpython
+        pip3 install tomli jinja2 gitpython pbuilder devscripts
 
     - name: Configure Kernel
       run: |
