@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-vyos:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     - name: Checkout source code
@@ -33,6 +33,8 @@ jobs:
           xorriso \
           live-build \
           debootstrap
+        sudo apt-get install -y python3-pip
+        pip3 install tomli jinja2 gitpython
 
     - name: Configure Kernel
       run: |
